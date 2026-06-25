@@ -1,0 +1,328 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "159fd411-8264-46e9-9f67-715117dd82f2",
+      "name": "Telegram Trigger",
+      "webhookId": "87d4612a-6cd0-4331-a7ef-708944328899",
+      "credentials": {
+        "telegramApi": {
+          "id": "FLyUDkzzRw8STMIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let textoOriginal = $input.item.json.message.text || \"\";\nlet chatId = $input.item.json.message.chat.id;\n\nlet textoLimpo = textoOriginal.trim().toLowerCase();\n\nlet queue = textoLimpo.normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, \"\");\n\nreturn {\n  json: {\n    queue: queue,\n    chat_id: chatId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "01abf600-245b-4cfa-926c-e5e2ac61b8d8",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{$json.queue}}"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            },
+            {
+              "name": "lang",
+              "value": "pt_br"
+            },
+            {
+              "name": "appid",
+              "value": "{your_openweathermap_api_key}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "08632cd4-6ccf-46de-a5a4-d505d057e23a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c8ced951-e18d-4693-9cb4-795f213779fa",
+              "leftValue": "={{ $json.cod }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "6de068c7-c85e-48b9-9ee0-3839a429edde",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const temperatura = Math.round($input.all()[0].json.main.temp);\nconst cidade = $input.all()[0].json.name;\n\nconst mensagem = `🌤️ A temperatura em ${cidade} é de ${temperatura}°C.`;\n\nconst primeiroNo = $('Code in JavaScript').all();\nconst chatId = primeiroNo[0].json.chat_id;\n\nreturn {\n  json: {\n    message: mensagem,\n    chat_id: chatId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "4acc21e6-579e-4ee0-b4fe-e412e894778f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.chat_id}}",
+        "text": "={{$json.message}}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1616,
+        -384
+      ],
+      "id": "b558d34a-7574-4c71-bf58-14516b59b1be",
+      "name": "Send a text message",
+      "webhookId": "aedaf4b1-6896-49da-ba51-0d839405a7e0",
+      "credentials": {
+        "telegramApi": {
+          "id": "FLyUDkzzRw8STMIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Code in JavaScript').item.json.chat_id }}",
+        "text": "❌ Cidade não encontrada. Use o formato Cidade, UF, BR (ex.: São Paulo, SP, BR)",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        96
+      ],
+      "id": "139375e8-24f5-489c-a082-fe8417960980",
+      "name": "Send a text message1",
+      "webhookId": "c9b79956-236f-472e-88ea-9393a3b51078",
+      "credentials": {
+        "telegramApi": {
+          "id": "FLyUDkzzRw8STMIL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Reescreva esta mensagem de previsão do tempo de forma mais natural, quente e amigável para um chatbot do Telegram. Retorne APENAS o texto da nova mensagem, sem aspas. Mensagem: {{ $json.message }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        -384
+      ],
+      "id": "9b9b32d5-8006-485b-ab45-98579083583c",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FqmKc6v1wKYg8mIa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const noFallback = $('Code in JavaScript1').all();\nlet mensagemFinal = noFallback[0].json.message;\nlet chatId = noFallback[0].json.chat_id;\n\nconst dadosGemini = $input.all()[0].json;\n\nlet aiText = \"\";\nif (dadosGemini.content && dadosGemini.content.parts && dadosGemini.content.parts.length > 0) {\n    aiText = dadosGemini.content.parts[0].text;\n} else if (dadosGemini.text) {\n    aiText = dadosGemini.text; \n}\n\nif (aiText && aiText.length > 5) {\n    mensagemFinal = aiText.trim();\n}\n\nreturn {\n  json: {\n    message: mensagemFinal,\n    chat_id: chatId\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        -384
+      ],
+      "id": "fcf3c958-ce0e-4dc3-b9e5-11bd3b50cec7",
+      "name": "Code in JavaScript2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "947548b9-1f10-4ec6-a089-9bf68f07ae0f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c158ba6188388581de6d0f4243b8edfa00d70fb091c198a93f053b896692cb1d"
+  },
+  "nodeGroups": [],
+  "id": "uqpMksWmjnfIkjln",
+  "tags": []
+}
